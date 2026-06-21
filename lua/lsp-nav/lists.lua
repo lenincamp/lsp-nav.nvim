@@ -52,13 +52,19 @@ local function open_picker(items, title)
     return
   end
 
-  -- Use vim.ui.select as default; users can override via picker integration
   local on_select = M._picker_fn
+  if not on_select then
+    local ok, picker = pcall(require, "picker")
+    if ok and picker.select_items then on_select = picker.select_items end
+  end
+
   if on_select then
     on_select(items, {
       prompt = title,
       quickfix_title = title,
       format_item = item_label,
+      preview = function(item) return item.filename end,
+      preview_lnum = function(item) return item.lnum end,
     }, open_location)
     return
   end
@@ -125,11 +131,7 @@ local function request_all(method, params, title, collector)
       remaining = remaining - 1
       if remaining == 0 then
         vim.schedule(function()
-          if title == "Document Symbols" then
-            open_picker(items, title)
-          else
-            open_qflist(items, title)
-          end
+          open_picker(items, title)
         end)
       end
     end, buffer)

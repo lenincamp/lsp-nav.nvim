@@ -3,9 +3,54 @@
 
 local M = {}
 
+-- Default keymaps: { [lhs] = { mode, action, desc } }
+-- User can remap via setup({ keymaps = { grr = "<leader>lr", ... } })
+local DEFAULT_KEYMAPS = {
+  -- Peek
+  gpc  = { "n", function() M.peek_close_all() end,              "Peek: close all" },
+  gpd  = { "n", function() M.peek_definition() end,             "Peek Definition" },
+  gpt  = { "n", function() M.peek_type_definition() end,        "Peek Type Definition" },
+  gpi  = { "n", function() M.peek_implementation() end,         "Peek Implementation" },
+  gpD  = { "n", function() M.peek_declaration() end,            "Peek Declaration" },
+  gpr  = { "n", function() M.references() end,                  "Peek References (picker)" },
+  -- Call Hierarchy
+  ["<leader>ch"] = { "n", function() M.call_hierarchy("incoming") end, "Call Hierarchy" },
+  ["<leader>ci"] = { "n", function() M.call_hierarchy_incoming() end,  "Incoming Calls" },
+  ["<leader>co"] = { "n", function() M.call_hierarchy_outgoing() end,  "Outgoing Calls" },
+  -- LSP Lists
+  grr  = { "n", function() M.references() end,       "References" },
+  gO   = { "n", function() M.document_symbols() end,  "Document Symbols" },
+  gW   = { "n", function() M.workspace_symbols() end, "Workspace Symbols" },
+  ["<leader>ss"] = { "n", function() M.document_symbols() end,  "LSP Symbols (doc)" },
+  ["<leader>sS"] = { "n", function() M.workspace_symbols() end, "LSP Symbols (workspace)" },
+}
+
+local function apply_keymaps(overrides, buf)
+  local map_opts = function(desc) return { buffer = buf, desc = desc, silent = true } end
+
+  for lhs, def in pairs(DEFAULT_KEYMAPS) do
+    local override = overrides and overrides[lhs]
+    if type(override) == "string" then
+      vim.keymap.set(def[1], override, def[2], map_opts(def[3]))
+    else
+      vim.keymap.set(def[1], lhs, def[2], map_opts(def[3]))
+    end
+  end
+end
+
 function M.setup(opts)
-  -- Reserved for future config (keymaps prefix, etc.)
-  M._opts = opts or {}
+  opts = opts or {}
+  M._opts = opts
+
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = vim.api.nvim_create_augroup("lsp-nav-keymaps", { clear = true }),
+    callback = function(ev)
+      -- Defer to run after Neovim's built-in LspAttach keymaps (grr, gO, etc.)
+      vim.schedule(function()
+        apply_keymaps(type(opts.keymaps) == "table" and opts.keymaps or nil, ev.buf)
+      end)
+    end,
+  })
 end
 
 -- ── Peek ──────────────────────────────────────────────────────────────
