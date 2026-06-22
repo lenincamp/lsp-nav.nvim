@@ -5,6 +5,8 @@
 --   • Editable: <C-s> saves actual file, LSP runs inside preview
 --   • Stack navigation: <BS> back, q/gpc close all, <CR> jump to file
 
+local open = require("lsp-nav.open")
+
 local M = {}
 
 -- ── Treesitter function detection ──────────────────────────────────────
@@ -190,8 +192,7 @@ local function open_location(loc, client_id, opts)
       return
     end
     local path = vim.uri_to_fname(uri)
-    vim.cmd("edit " .. vim.fn.fnameescape(path))
-    pcall(vim.api.nvim_win_set_cursor, 0, { tgt_line + 1, tgt_col })
+    open.file(path, tgt_line + 1, tgt_col + 1)
   end, "Peek: jump to file")
 
   bmap("<C-Up>", function()

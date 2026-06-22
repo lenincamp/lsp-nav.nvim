@@ -1,5 +1,7 @@
 -- LSP symbol lists and references (document symbols, workspace symbols, references).
 
+local open = require("lsp-nav.open")
+
 local M = {}
 
 local function notify(message, level)
@@ -42,8 +44,7 @@ end
 local function open_location(item)
   local filename = item and (item.filename or item.path)
   if type(filename) ~= "string" or filename == "" then return end
-  vim.cmd("edit " .. vim.fn.fnameescape(filename))
-  vim.api.nvim_win_set_cursor(0, { item.lnum or 1, math.max((item.col or 1) - 1, 0) })
+  open.file(filename, item.lnum or 1, item.col or 1)
 end
 
 local function open_picker(items, title)
