@@ -63,6 +63,7 @@ local function open_picker(items, title)
     on_select(items, {
       prompt = title,
       quickfix_title = title,
+      input_mode = true,
       format_item = item_label,
       preview = function(item) return item.filename end,
       preview_lnum = function(item) return item.lnum end,
@@ -158,11 +159,8 @@ function M.document_symbols()
 end
 
 function M.workspace_symbols()
-  vim.ui.input({ prompt = "Workspace symbol: " }, function(query)
-    if not query or query == "" then return end
-    request_all("workspace/symbol", { query = query }, "Workspace Symbols", function(result, items)
-      collect_workspace_symbols(result, items)
-    end)
+  request_all("workspace/symbol", { query = "" }, "Workspace Symbols", function(result, items)
+    collect_workspace_symbols(result, items)
   end)
 end
 
