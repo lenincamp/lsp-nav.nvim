@@ -159,7 +159,9 @@ function M.document_symbols()
 end
 
 function M.workspace_symbols()
-  request_all("workspace/symbol", { query = "" }, "Workspace Symbols", function(result, items)
+  local query = vim.fn.input("Workspace symbol: ")
+  if vim.trim(query) == "" then return end
+  request_all("workspace/symbol", { query = query }, "Workspace Symbols", function(result, items)
     collect_workspace_symbols(result, items)
   end)
 end
