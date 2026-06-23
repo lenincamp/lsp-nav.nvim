@@ -165,51 +165,54 @@ function M.workspace_symbols()
     if ok and picker.select_items then on_select = picker.select_items end
   end
 
+  local buffer = vim.api.nvim_get_current_buf()
+  local lsp_clients = clients_for("workspace/symbol", buffer)
+
+  local function do_query(q, callback)
+    if #lsp_clients == 0 then
+      vim.schedule(function() callback({}) end)
+      return
+    end
+    local remaining = #lsp_clients
+    local items = {}
+    for _, client in ipairs(lsp_clients) do
+      client:request("workspace/symbol", { query = q }, function(err, result)
+        if not err and result then
+          collect_workspace_symbols(result, items)
+        end
+        remaining = remaining - 1
+        if remaining == 0 then
+          vim.schedule(function() callback(items) end)
+        end
+      end, buffer)
+    end
+  end
+
   if not on_select then
     local query = vim.fn.input("Workspace symbol: ")
     if vim.trim(query) == "" then return end
-    request_all("workspace/symbol", { query = query }, "Workspace Symbols", function(result, items)
-      collect_workspace_symbols(result, items)
+    do_query(query, function(items)
+      open_picker(items, "Workspace Symbols")
     end)
     return
   end
 
-  local buffer = vim.api.nvim_get_current_buf()
-
-  on_select({}, {
-    prompt = "Workspace Symbols",
-    input_mode = true,
-    input_only = true,
-    debounce_ms = 180,
-    format_item = item_label,
-    preview = function(item) return item.filename end,
-    preview_lnum = function(item) return item.lnum end,
-    dynamic_items = function(state, callback)
-      local q = vim.trim(state.query or "")
-      if q == "" then
-        callback({})
-        return
-      end
-      local lsp_clients = clients_for("workspace/symbol", buffer)
-      if #lsp_clients == 0 then
-        callback({})
-        return
-      end
-      local remaining = #lsp_clients
-      local items = {}
-      for _, client in ipairs(lsp_clients) do
-        client:request("workspace/symbol", { query = q }, function(err, result)
-          if not err and result then
-            collect_workspace_symbols(result, items)
-          end
-          remaining = remaining - 1
-          if remaining == 0 then
-            vim.schedule(function() callback(items) end)
-          end
-        end, buffer)
-      end
-    end,
-  }, open_location)
+  -- Pre-fetch with "" to populate initial list; servers that reject empty
+  -- query return {} and the user can type to trigger dynamic_items.
+  do_query("", function(initial_items)
+    on_select(initial_items, {
+      prompt = "Workspace Symbols",
+      input_mode = true,
+      input_only = #initial_items == 0,
+      debounce_ms = 180,
+      format_item = item_label,
+      preview = function(item) return item.filename end,
+      preview_lnum = function(item) return item.lnum end,
+      dynamic_items = function(state, callback)
+        do_query(vim.trim(state.query or ""), callback)
+      end,
+    }, open_location)
+  end)
 end
 
 --- Set a custom picker function for document symbols and references.
