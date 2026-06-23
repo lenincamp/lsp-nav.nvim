@@ -199,9 +199,9 @@ function M.workspace_symbols()
     return
   end
 
-  -- Pre-fetch with "" to populate initial list; servers that reject empty
-  -- query return {} and the user can type to trigger dynamic_items.
-  do_query("", function(initial_items)
+  -- Pre-fetch with "*" — works as wildcard on jdtls and returns all symbols
+  -- on vtsls/tsserver. Falls back gracefully to input_only if server rejects it.
+  do_query("*", function(initial_items)
     on_select(initial_items, {
       prompt = "Workspace Symbols",
       input_mode = true,
