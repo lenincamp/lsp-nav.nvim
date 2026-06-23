@@ -42,6 +42,12 @@ function M.setup(opts)
   opts = opts or {}
   M._opts = opts
 
+  -- Wire picker.nvim when available so document/workspace symbols use the full UI.
+  local ok, picker = pcall(require, "picker")
+  if ok and picker.select_items then
+    require("lsp-nav.lists").set_picker(picker.select_items)
+  end
+
   vim.api.nvim_create_autocmd("LspAttach", {
     group = vim.api.nvim_create_augroup("lsp-nav-keymaps", { clear = true }),
     callback = function(ev)
