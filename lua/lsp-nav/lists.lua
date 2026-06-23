@@ -80,7 +80,9 @@ local function symbol_kind(kind)
 end
 
 local function symbol_item(symbol, uri, depth)
+  -- DocumentSymbol has .selectionRange/.range; SymbolInformation (workspace) uses .location.range
   local range = symbol.selectionRange or symbol.range
+    or (symbol.location and symbol.location.range)
   if not range or not range.start then return nil end
 
   local filename = vim.uri_to_fname(symbol.location and symbol.location.uri or uri)
@@ -220,5 +222,12 @@ end
 function M.set_picker(fn)
   M._picker_fn = fn
 end
+
+--- Internal test helpers (only used by tests).
+M._test = {
+  symbol_item = symbol_item,
+  collect_document_symbols = collect_document_symbols,
+  collect_workspace_symbols = collect_workspace_symbols,
+}
 
 return M
