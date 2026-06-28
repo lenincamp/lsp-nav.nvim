@@ -16,3 +16,6 @@ luacov.*
 # OS
 .DS_Store
 Thumbs.db
+
+# Neovim
+*.log
